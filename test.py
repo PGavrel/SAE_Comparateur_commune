@@ -852,11 +852,12 @@ def page_city_fighter():
 
 # Page Zoom Ville
 def page_zoom_ville():
-    st.title("Zoom sur une Ville")
-    villes = list(code_insee_villes.keys())
-    default_index = villes.index("Toulouse") if "Toulouse" in villes else 0
-    ville = st.selectbox("Choisissez une commune", villes, index=default_index)
-    afficher_resultats_aligne(ville)
+    st.title("🔎 Zoom sur une Ville")
+
+    # Sélection de la commune
+    ville = st.selectbox("Choisissez une commune", list(code_insee_villes.keys()))
+    afficher_resultats_aligne(ville)  # votre bloc existant d’infos géo
+
     # Sidebar : filtres et activation
     if st.sidebar.checkbox("Afficher les offres d'emploi", True):
         mot_cle   = st.sidebar.text_input("🔍 Mot-clé métier", "", key="zoom_keyword")
