@@ -792,7 +792,9 @@ def page_city_fighter():
 # Page Zoom Ville
 def page_zoom_ville():
     st.title("Zoom sur une Ville")
-    ville = st.selectbox("Choisissez une commune", list(code_insee_villes.keys()))
+    villes = list(code_insee_villes.keys())
+    default_index = villes.index("Toulouse") if "Toulouse" in villes else 0
+    ville = st.selectbox("Choisissez une commune", villes, index=default_index)
     afficher_resultats_aligne(ville)
 
 
