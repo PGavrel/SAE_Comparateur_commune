@@ -75,11 +75,18 @@ def get_emploi_melodi_insee(dep_code):
 
     try:
         response = requests.get(url, verify=False)
+        if response.status_code != 200 or not response.text.strip():
+            st.warning(f"Réponse vide ou erreur HTTP {response.status_code} pour {dep_code}")
+            return pd.DataFrame()
+
         data = response.json()
 
         observations = data.get('observations', [])
-        extracted_data = []
+        if not observations:
+            st.warning(f"Aucune donnée d'observation disponible pour {dep_code}")
+            return pd.DataFrame()
 
+        extracted_data = []
         for obs in observations:
             dimensions = obs.get('dimensions', {})
             attributes = obs.get('attributes', {})
@@ -541,9 +548,15 @@ def afficher_resultats_aligne(ville1, ville2=None):
         # Affichage simplifié (par sexe et PCS par exemple)
         colonnes = ["TIME_PERIOD","PCS", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]
         # Trier df_emploi1
-        df_emploi1 = df_emploi1.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
+        if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
+            df_emploi1 = df_emploi1.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
+        else:
+            st.warning(f"Aucune donnée emploi disponible pour {ville1}")
         if ville2:
-            df_emploi2 = df_emploi2.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
+            if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
+                df_emploi2 = df_emploi2.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
+            else:
+                st.warning(f"Aucune donnée emploi disponible pour {ville1}")
 
         # Trier df_emploi2
         if ville2:
