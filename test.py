@@ -17,6 +17,7 @@ import folium
 from streamlit_folium import st_folium
 import io
 import zipfile
+import matplotlib.pyplot as plt
 
 # Charger les variables d'environnement depuis un fichier .env
 load_dotenv()
@@ -549,7 +550,24 @@ def afficher_resultats_aligne(ville1, ville2=None):
         df_emploi2 = regrouper_emploi(df_emploi2)
         df_emploi1 = ajouter_libelles_pcs(df_emploi1)
         df_emploi2 = ajouter_libelles_pcs(df_emploi2)
+
+        # Création du graphique d'évolution temporelle
+        fig, ax = plt.subplots(figsize=(10, 6))
         
+        for pcs in df_emploi1["PCS_LIBELLE"].unique():
+            data1 = df_emploi1[df_emploi1["PCS_LIBELLE"] == pcs]
+            data2 = df_emploi2[df_emploi2["PCS_LIBELLE"] == pcs]
+            ax.plot(data1["TIME_PERIOD"], data1["OBS_VALUE_NIVEAU"], marker='o', label=f"{pcs} - Ville 1")
+            ax.plot(data2["TIME_PERIOD"], data2["OBS_VALUE_NIVEAU"], marker='x', linestyle='--', label=f"{pcs} - Ville 2")
+        
+        ax.set_title("Évolution des catégories socio-professionnelles par département")
+        ax.set_xlabel("Année")
+        ax.set_ylabel("Population active")
+        ax.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        plt.show()
 
         # Affichage simplifié (par sexe et PCS par exemple)
         colonnes = ["TIME_PERIOD","PCS", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]
