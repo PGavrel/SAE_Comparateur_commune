@@ -163,13 +163,19 @@ def get_nom_officiel_depuis_insee(code_insee):
 # Récupérer blason et site web via API Wikipédia
 @st.cache_data(show_spinner="Chargement des données...")
 def get_blason_et_site_via_api(nom_ville):
-    if not nom_ville or not nom_ville.strip():
-        return None  # évite les requêtes vides vers Wikipedia
+    # Fallback pour Paris (blason + site web)
+    if nom_ville.lower() == "paris":
+        return {
+            "ville": "Paris",
+            "blason_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Blason_Paris.svg/800px-Blason_Paris.svg.png",
+            "site_web": "https://www.paris.fr",
+            "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Paris_vue_d%27ensemble.jpg/800px-Paris_vue_d%27ensemble.jpg"
+        }
 
     try:
         page_title = wikipedia.search(nom_ville)[0]
-    except (IndexError, wikipedia.exceptions.WikipediaException) as e:
-        return None  # si aucun résultat ou erreur, on retourne None
+    except (IndexError, wikipedia.exceptions.WikipediaException):
+        return None
 
     ville_url = urllib.parse.quote(page_title.replace(" ", "_"))
     api_url = "https://fr.wikipedia.org/w/api.php"
