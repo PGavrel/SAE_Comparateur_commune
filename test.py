@@ -30,21 +30,67 @@ st.set_page_config(page_title="Comparateur de communes", layout="centered")
 # Config Wikipedia
 wikipedia.set_lang("fr")
 
-# Remplacez par l'URL de l'API de France Travail et la clé API
-url = "https://api.francetravail.io/partenaire/offresdemploi"  # Exemple d'URL, à adapter selon la documentation
+# --- Configuration API Pôle Emploi / France Travail ---
+token_url = "https://entreprise.pole-emploi.fr/connexion/oauth2/access_token?realm=/partenaire"
+offers_url = "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search"
+client_id = "PAR_comparateurdecommunes_28abf13883e0a4d33045fd2855357075c9ae2f4181a8d90b560b74eb88f19c0c"
+client_secret = "c6ca0861b738e9c7b2a282d028e436fd03bc8ee733e3ad6ace1be90aaf1eb243"
+scope = "o2dsoffre api_offresdemploiv2"
 
-headers = {
-    "Authorization": "5cb42c37f401d792090b7141eb28396bc23836a558e2d3d7f94b2d14c0f17968",  # Remplacez par votre clé API
-}
+# --- Authentification OAuth ---
+def authenticate(scope):
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    params = {
+        'grant_type': 'client_credentials',
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'scope': scope
+    }
+    response = requests.post(token_url, data=params, headers=headers)
+    response.raise_for_status()
+    return response.json().get('access_token')
 
-# Effectuer une requête GET pour récupérer les offres d'emploi
-response = requests.get(url, headers=headers)
+# --- Requête “promoteur” sans pagination pour comparaison de deux villes ---
+def liste_metier(code_dep, mots_cles, access_token):
+    url = offers_url
+    querystring = {"departement": code_dep, "motsCles": mots_cles}
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json"
+    }
+    resp = requests.get(url, headers=headers, params=querystring)
+    try:
+        return resp.json()
+    except json.JSONDecodeError:
+        return {}
 
-if response.status_code == 200:
-    data = response.json()  # Si la requête est réussie, on récupère les données en format JSON
-    print(data)
-else:
-    print(f"Erreur {response.status_code}: {response.text}")
+# --- Fonction utilitaire pour retirer les accents et formater le nom de la ville ---
+def enlever_accents(texte):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texte)
+        if unicodedata.category(c) != 'Mn'
+    ).replace(' ', '-')
+
+# --- Requête avec pagination pour “Zoom sur une ville” ---
+def get_api_headers(start, page_size):
+    token = authenticate(scope)
+    return {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/json',
+        'Range': f'bytes={start}-{start+page_size-1}'
+    }
+
+def fetch_offres(start=0, page_size=20, departement=None, mots_cles=None):
+    headers = get_api_headers(start, page_size)
+    params = {}
+    if departement:
+        params['departement'] = departement
+    if mots_cles:
+        params['motsCles'] = mots_cles
+    resp = requests.get(offers_url, headers=headers, params=params)
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get('resultats', []), resp.headers.get('Content-Range', '')
 
 
 # Communes
@@ -811,6 +857,37 @@ def page_zoom_ville():
     default_index = villes.index("Toulouse") if "Toulouse" in villes else 0
     ville = st.selectbox("Choisissez une commune", villes, index=default_index)
     afficher_resultats_aligne(ville)
+    # Sidebar : filtres et activation
+    if st.sidebar.checkbox("Afficher les offres d'emploi", True):
+        mot_cle   = st.sidebar.text_input("🔍 Mot-clé métier", "", key="zoom_keyword")
+        nb_offres = st.sidebar.selectbox("🔢 Nombre d'offres", ["5", "10", "50", "100", "Toutes"], key="zoom_nb")
+
+        st.markdown("<hr style='border: 1px solid #ddd; margin-top: 10px;'>", unsafe_allow_html=True)
+
+        # Préparation du slug et du code département
+        slug_ville = enlever_accents(ville.split(' (')[0])
+        infos = get_infos_commune(code_insee_villes[ville])
+        depart = infos.get('departement', {}).get('code')
+
+        # Appel API
+        token = authenticate(scope)
+        resultats = liste_metier(depart, f"{mot_cle} {slug_ville}", token).get("resultats", [])
+
+        # Affichage vertical des offres
+        if resultats:
+            if nb_offres != "Toutes":
+                resultats = resultats[:int(nb_offres)]
+            for offre in resultats:
+                st.markdown(f"### {offre.get('intitule', '—')}")
+                st.write(f"📍 Lieu : {offre.get('lieuTravail', {}).get('libelle', 'Inconnu')}")
+                st.write(f"📝 {offre.get('description', '')[:300]}…")
+                url = (offre.get('origineOffre', {}).get('urlOrigine')
+                       or offre.get('lienOrigine')
+                       or offre.get('urlOrigine', "#"))
+                st.markdown(f"[🔗 Voir l'offre]({url})", unsafe_allow_html=True)
+                st.markdown("<hr style='border: 1px solid #ddd;'>", unsafe_allow_html=True)
+        else:
+            st.warning("Aucune offre trouvée pour cette ville.")
 
 
 # Page Boîte à Idées
