@@ -441,7 +441,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
     infos2 = get_infos_commune(code2) if code2 else {}
 
     df_test = charger_code_insee_villes()
-    st.write("Nombre de communes chargées :", len(df_test))
+    
 
     if ville2:
         st.header(f"{ville1} VS {ville2}")
