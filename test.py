@@ -557,28 +557,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
         # Affichage simplifié (par sexe et PCS par exemple)
         colonnes = ["TIME_PERIOD","PCS", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]
     
-        # Création du graphique d'évolution temporelle
-
-    if not df_emploi1.empty and not df_emploi2.empty and "PCS_LIBELLE" in df_emploi1.columns and "PCS_LIBELLE" in df_emploi2.columns:
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        for pcs in df_emploi1["PCS_LIBELLE"].unique():
-            data1 = df_emploi1[df_emploi1["PCS_LIBELLE"] == pcs]
-            data2 = df_emploi2[df_emploi2["PCS_LIBELLE"] == pcs]
-
-            if not data1.empty:
-                ax.plot(data1["TIME_PERIOD"], data1["OBS_VALUE_NIVEAU"], marker='o', label=f"{pcs} - {ville1}")
-            if not data2.empty:
-                ax.plot(data2["TIME_PERIOD"], data2["OBS_VALUE_NIVEAU"], marker='x', linestyle='--', label=f"{pcs} - {ville2}")
-
-        ax.set_title("Évolution des catégories socio-professionnelles par département")
-        ax.set_xlabel("Année")
-        ax.set_ylabel("Population active")
-        ax.legend()
-        plt.xticks(rotation=45)
-        st.pyplot(fig)
-    else:
-        st.warning("Graphique non affiché : données manquantes ou incomplètes.")
+       
 
         
     # Trier df_emploi1
