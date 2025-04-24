@@ -537,70 +537,70 @@ def afficher_resultats_aligne(ville1, ville2=None):
 
 
 
-    if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
-        # Section emploi via INSEE Melodi
-        if st.sidebar.checkbox("Répartition emploi", True):
-            st.markdown("### Répartition catégories socio-professionnel département(source : INSEE - API Melodi)")
-            dep1 = infos1.get("departement", {}).get("code")
-            dep2 = infos2.get("departement", {}).get("code") if ville2 else None
     
-            code_dep1 = f"DEP-{dep1}" if dep1 else None
-            code_dep2 = f"DEP-{dep2}" if ville2 and dep2 else None
+    # Section emploi via INSEE Melodi
+    if st.sidebar.checkbox("Répartition emploi", True):
+        st.markdown("### Répartition catégories socio-professionnel département(source : INSEE - API Melodi)")
+        dep1 = infos1.get("departement", {}).get("code")
+        dep2 = infos2.get("departement", {}).get("code") if ville2 else None
     
-            df_emploi1 = get_emploi_melodi_insee(code_dep1) if code_dep1 else pd.DataFrame()
-            df_emploi2 = get_emploi_melodi_insee(code_dep2) if code_dep2 else pd.DataFrame()
-            df_emploi1 = regrouper_emploi(df_emploi1)
-            df_emploi2 = regrouper_emploi(df_emploi2)
-            df_emploi1 = ajouter_libelles_pcs(df_emploi1)
-            df_emploi2 = ajouter_libelles_pcs(df_emploi2)
+        code_dep1 = f"DEP-{dep1}" if dep1 else None
+        code_dep2 = f"DEP-{dep2}" if ville2 and dep2 else None
     
-            # Affichage simplifié (par sexe et PCS par exemple)
-            colonnes = ["TIME_PERIOD","PCS", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]
+        df_emploi1 = get_emploi_melodi_insee(code_dep1) if code_dep1 else pd.DataFrame()
+        df_emploi2 = get_emploi_melodi_insee(code_dep2) if code_dep2 else pd.DataFrame()
+        df_emploi1 = regrouper_emploi(df_emploi1)
+        df_emploi2 = regrouper_emploi(df_emploi2)
+        df_emploi1 = ajouter_libelles_pcs(df_emploi1)
+        df_emploi2 = ajouter_libelles_pcs(df_emploi2)
+
+        # Affichage simplifié (par sexe et PCS par exemple)
+        colonnes = ["TIME_PERIOD","PCS", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]
     
-            # Création du graphique d'évolution temporelle
-            fig, ax = plt.subplots(figsize=(10, 6))
+        # Création du graphique d'évolution temporelle
+        fig, ax = plt.subplots(figsize=(10, 6))
             
-            for pcs in df_emploi1["PCS_LIBELLE"].unique():
-                data1 = df_emploi1[df_emploi1["PCS_LIBELLE"] == pcs]
-                data2 = df_emploi2[df_emploi2["PCS_LIBELLE"] == pcs]
-                ax.plot(data1["TIME_PERIOD"], data1["OBS_VALUE_NIVEAU"], marker='o', label=f"{pcs} - Ville 1")
-                ax.plot(data2["TIME_PERIOD"], data2["OBS_VALUE_NIVEAU"], marker='x', linestyle='--', label=f"{pcs} - Ville 2")
+        for pcs in df_emploi1["PCS_LIBELLE"].unique():
+            data1 = df_emploi1[df_emploi1["PCS_LIBELLE"] == pcs]
+            data2 = df_emploi2[df_emploi2["PCS_LIBELLE"] == pcs]
+            ax.plot(data1["TIME_PERIOD"], data1["OBS_VALUE_NIVEAU"], marker='o', label=f"{pcs} - Ville 1")
+            ax.plot(data2["TIME_PERIOD"], data2["OBS_VALUE_NIVEAU"], marker='x', linestyle='--', label=f"{pcs} - Ville 2")
             
-            ax.set_title("Évolution des catégories socio-professionnelles par département")
-            ax.set_xlabel("Année")
-            ax.set_ylabel("Population active")
-            ax.legend()
-            plt.xticks(rotation=45)
-            plt.tight_layout()
+        ax.set_title("Évolution des catégories socio-professionnelles par département")
+        ax.set_xlabel("Année")
+        ax.set_ylabel("Population active")
+        ax.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
             
-            plt.show()
-        else:
-            st.warning(f"Aucune donnée emploi disponible pour {ville1}")
+        plt.show()
+    else:
+        st.warning(f"Aucune donnée emploi disponible pour {ville1}")
         
-        # Trier df_emploi1
+    # Trier df_emploi1
+    if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
+        df_emploi1 = df_emploi1.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
+    else:
+        st.warning(f"Aucune donnée emploi disponible pour {ville1}")
+    if ville2:
         if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
-            df_emploi1 = df_emploi1.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
+            df_emploi2 = df_emploi2.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
         else:
             st.warning(f"Aucune donnée emploi disponible pour {ville1}")
-        if ville2:
-            if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
-                df_emploi2 = df_emploi2.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
-            else:
-                st.warning(f"Aucune donnée emploi disponible pour {ville1}")
 
-        # Trier df_emploi2
-        if ville2:
-            colonnes_tri2 = [col for col in ["TIME_PERIOD", "PCS"] if col in df_emploi2.columns]
-            if colonnes_tri2:
-                df_emploi2 = df_emploi2.sort_values(by=colonnes_tri2, ascending=[False, True])
+    # Trier df_emploi2
+    if ville2:
+        colonnes_tri2 = [col for col in ["TIME_PERIOD", "PCS"] if col in df_emploi2.columns]
+        if colonnes_tri2:
+            df_emploi2 = df_emploi2.sort_values(by=colonnes_tri2, ascending=[False, True])
 
-        if ville2:
-            st.write(f"### {ville1}")
-            st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
-            st.write(f"### {ville2}")
-            st.dataframe(df_emploi2[ [col for col in colonnes if col in df_emploi2.columns] ])
-        else:
-            st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
+    if ville2:
+        st.write(f"### {ville1}")
+        st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
+        st.write(f"### {ville2}")
+        st.dataframe(df_emploi2[ [col for col in colonnes if col in df_emploi2.columns] ])
+    else:
+        st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
 
 
     # Récupération coordonnées GPS depuis infos INSEE (attention à l'ordre GeoJSON)
@@ -900,4 +900,3 @@ elif page == "Zoom Ville":
     page_zoom_ville()
 elif page == "Boîte à Idées":
     page_boite_a_idees()
-
