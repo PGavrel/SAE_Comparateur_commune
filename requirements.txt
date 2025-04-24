@@ -9,3 +9,4 @@ Pillow
 urllib3
 python-dateutil
 matplotlib
+unicodedata2  
