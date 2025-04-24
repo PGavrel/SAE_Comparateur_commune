@@ -18,6 +18,8 @@ from streamlit_folium import st_folium
 import io
 import zipfile
 import matplotlib.pyplot as plt
+import unicodedata
+import json
 
 # Charger les variables d'environnement depuis un fichier .env
 load_dotenv()
