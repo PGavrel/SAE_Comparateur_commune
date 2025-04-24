@@ -587,7 +587,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
     else:
         st.warning(f"Aucune donnée emploi disponible pour {ville1}")
     if ville2:
-        if not df_emploi1.empty and "TIME_PERIOD" in df_emploi1.columns and "PCS" in df_emploi1.columns:
+        if not df_emploi2.empty and "TIME_PERIOD" in df_emploi2.columns and "PCS" in df_emploi2.columns:
             df_emploi2 = df_emploi2.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
         else:
             st.warning(f"Aucune donnée emploi disponible pour {ville1}")
