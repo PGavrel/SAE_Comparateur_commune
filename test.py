@@ -164,6 +164,9 @@ def get_nom_officiel_depuis_insee(code_insee):
 # Récupérer blason et site web via API Wikipédia
 @st.cache_data(show_spinner="Chargement des données...")
 def get_blason_et_site_via_api(nom_ville):
+    if not nom_ville or not isinstance(nom_ville, str):
+        return None
+
     # Fallback pour Paris (blason + site web)
     if nom_ville.lower() == "paris":
         return {
