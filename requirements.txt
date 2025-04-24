@@ -8,3 +8,4 @@ streamlit-folium
 Pillow
 urllib3
 python-dateutil
+matplotlib
