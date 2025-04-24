@@ -1,0 +1,10 @@
+streamlit
+pandas
+requests
+wikipedia
+python-dotenv
+folium
+streamlit-folium
+Pillow
+urllib3
+python-dateutil
