@@ -167,9 +167,9 @@ def get_blason_et_site_via_api(nom_ville):
     if nom_ville.lower() == "paris":
         return {
             "ville": "Paris",
-            "blason_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Blason_Paris.svg/800px-Blason_Paris.svg.png",
+            "blason_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Grandes_Armes_de_Paris.svg/langfr-250px-Grandes_Armes_de_Paris.svg.png",
             "site_web": "https://www.paris.fr",
-            "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Paris_vue_d%27ensemble.jpg/800px-Paris_vue_d%27ensemble.jpg"
+            "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Pont_des_Arts%2C_Paris.jpg/330px-Pont_des_Arts%2C_Paris.jpg"
         }
 
     try:
