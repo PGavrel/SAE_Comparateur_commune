@@ -177,32 +177,6 @@ def regrouper_emploi(df):
         return df_grouped
     return df
 
-@st.cache_data(show_spinner="Chargement des données DVF...")
-def get_prix_m2_dvf(code_insee):
-    url = f"https://datafoncier.cquest.org/dvf/latest/csv/{code_insee}.csv"
-
-    try:
-        response = requests.get(url, verify=False)
-        if response.status_code != 200:
-            return None
-
-        df = pd.read_csv(io.StringIO(response.text), sep="|")
-
-        # Nettoyage
-        df = df[df["Type local"].isin(["Maison", "Appartement"])]
-        df = df[df["Surface reelle bati"] > 15]
-        df = df[df["Valeur fonciere"] > 10000]
-
-        df["prix_m2"] = df["Valeur fonciere"] / df["Surface reelle bati"]
-        prix_m2_moyen = df["prix_m2"].mean().round(1)
-
-        return prix_m2_moyen
-
-    except Exception as e:
-        st.error(f"Erreur récupération DVF : {e}")
-        return None
-
-
 # Fonction GeoAPI pour récupérer le nom officiel depuis le code INSEE
 @st.cache_data(show_spinner="Chargement des données...")
 def get_nom_officiel_depuis_insee(code_insee):
@@ -487,9 +461,9 @@ def afficher_previsions_meteo(ville, df, nb_jours):
         """, unsafe_allow_html=True)
 
 @st.cache_data
-def charger_dvf_aggrege(path="dvf_agg_communes_2024.csv"):
+def charger_dvf_aggrege(path="dvf2023.csv"):
     try:
-        return pd.read_csv(path, dtype={"Code commune": str})
+        return pd.read_csv(path, dtype={"INSEE_COM": str})
     except Exception as e:
         st.error(f"Erreur lecture fichier DVF agrégé : {e}")
         return pd.DataFrame()
@@ -726,11 +700,11 @@ def afficher_resultats_aligne(ville1, ville2=None):
 
     if st.sidebar.checkbox("Logement", True):
         st.markdown("### Prix moyen au m² (transactions DVF – Etalab)")
-        df_dvf_agg = charger_dvf_aggrege()
+        df_dvf = charger_dvf_aggrege()
 
         if not df_dvf_agg.empty:
-            ligne1 = df_dvf_agg[df_dvf_agg["Code commune"] == code1]
-            ligne2 = df_dvf_agg[df_dvf_agg["Code commune"] == code2] if ville2 else pd.DataFrame()
+            ligne1 = df_dvf[df_dvf["INSEE_COM"] == code1]
+            ligne2 = df_dvf[df_dvf["INSEE_COM"] == code2] if ville2 else pd.DataFrame()
 
             if ville2:
                 col1, col2 = st.columns(2)
@@ -757,7 +731,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
                 else:
                     st.info(f"Aucune donnée DVF pour {ville1}")
         else:
-            st.warning("Fichier `dvf_agg_communes_2024.csv` introuvable ou vide.")
+            st.warning("Fichier `dvf2023.csv` introuvable ou vide.")
 
 
 # Fonction pour envoyer un email
