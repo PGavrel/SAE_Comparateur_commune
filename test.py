@@ -726,10 +726,10 @@ def afficher_resultats_aligne(ville1, ville2=None):
                 with col1:
                     if not ligne1.empty:
                         st.markdown(f"""
-                            <b style='font-size:22px'>{ville1}</b><br>
-                            Prix moyen : <b>{prix} €/m²</b><br>
-                            - {NbApparts} ventes d'appartements<br>
-                            - {NbMaisons} ventes de maisons
+                            <b style='font-size:22px'>{ville1}</b>
+                            Prix moyen : <b>{prix} €/m²</b>
+                            Maison : <b>{NbMaisons} €/m²</b>
+                            Appartements : <b>{NbApparts}</b>
                             """, unsafe_allow_html=True)
                     else:
                         st.info(f"Aucune donnée DVF pour {ville1}")
@@ -740,21 +740,21 @@ def afficher_resultats_aligne(ville1, ville2=None):
                         NbApparts = ligne2["NbApparts"].values[0]
                         NbMaisons = ligne2["NbMaisons"].values[0]
                         st.markdown(f"""
-                        <b style='font-size:22px'>{ville2}</b><br>
-                        Prix moyen : <b>{prix} €/m²</b><br>
-                        - {NbApparts} ventes d'appartements<br>
-                        - {NbMaisons} ventes de maisons
+                        <b style='font-size:22px'>{ville2}</b>
+                        Prix moyen : <b>{prix} €/m²</b>
+                        Maison : <b>{NbMaisons} €/m²</b>
+                        Appartements : <b>{NbApparts}</b>
                         """, unsafe_allow_html=True)
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
             else:
                 if not ligne1.empty:
                     st.markdown(f"""
-                        <b style='font-size:22px'>{ville1}</b><br>
-                        Prix moyen : <b>{prix} €/m²</b><br>
-                        - {NbApparts} ventes d'appartements<br>
-                        - {NbMaisons} ventes de maisons
-                        """, unsafe_allow_html=True)
+                            <b style='font-size:22px'>{ville1}</b>
+                            Prix moyen : <b>{prix} €/m²</b>
+                            Maison : <b>{NbMaisons} €/m²</b>
+                            Appartements : <b>{NbApparts}</b>
+                            """, unsafe_allow_html=True)
                 else:
                      st.info(f"Aucune donnée DVF pour {ville1}")
         else:
