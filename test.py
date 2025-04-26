@@ -726,13 +726,13 @@ def afficher_resultats_aligne(ville1, ville2=None):
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
             else:
-                 if not ligne1.empty:
-                        prix = ligne1["Prixm2Moyen"].values[0]
-                        nbApparts = ligne1["NbApparts"].values[0]
-                        NbMaisons = ligne1["NbMaisons"].values[0]
-                        st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
-                    else:
-                        st.info(f"Aucune donnée DVF pour {ville1}")
+                if not ligne1.empty:
+                    prix = ligne1["Prixm2Moyen"].values[0]
+                    nbApparts = ligne1["NbApparts"].values[0]
+                    NbMaisons = ligne1["NbMaisons"].values[0]
+                    st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                 else:
+                     st.info(f"Aucune donnée DVF pour {ville1}")
         else:
             st.warning("Données non disponibles")
 
