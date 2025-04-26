@@ -463,7 +463,20 @@ def afficher_previsions_meteo(ville, df, nb_jours):
 @st.cache_data
 def charger_dvf_aggrege(path="dvf2023.csv"):
     try:
-        return pd.read_csv(path, dtype={"INSEE_COM": str})
+        df = pd.read_csv(path, dtype={"INSEE_COM": str})
+
+        # Sécuriser les colonnes si elles existent
+        if "Prixm2Moyen" in df.columns:
+            df["Prixm2Moyen"] = df["Prixm2Moyen"].round(1)
+
+        if "NbApparts" in df.columns:
+            df["NbApparts"] = df["NbApparts"].fillna(0).astype(int)
+
+        if "NbMaisons" in df.columns:
+            df["NbMaisons"] = df["NbMaisons"].fillna(0).astype(int)
+
+        return df
+    
     except Exception as e:
         st.error(f"Erreur lecture fichier DVF agrégé : {e}")
         return pd.DataFrame()
@@ -711,26 +724,26 @@ def afficher_resultats_aligne(ville1, ville2=None):
                 with col1:
                     if not ligne1.empty:
                         prix = ligne1["Prixm2Moyen"].values[0]
-                        nbApparts = ligne1["NbApparts"].values[0]
+                        NbApparts = ligne1["NbApparts"].values[0]
                         NbMaisons = ligne1["NbMaisons"].values[0]
-                        st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                        st.success(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                     else:
                         st.info(f"Aucune donnée DVF pour {ville1}")
 
                 with col2:
                     if not ligne2.empty:
                         prix = ligne2["Prixm2Moyen"].values[0]
-                        nbApparts = ligne2["NbApparts"].values[0]
+                        NbApparts = ligne2["NbApparts"].values[0]
                         NbMaisons = ligne2["NbMaisons"].values[0]
-                        st.success(f"**{ville2}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                        st.success(f"**{ville2}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
             else:
                 if not ligne1.empty:
                     prix = ligne1["Prixm2Moyen"].values[0]
-                    nbApparts = ligne1["NbApparts"].values[0]
+                    NbApparts = ligne1["NbApparts"].values[0]
                     NbMaisons = ligne1["NbMaisons"].values[0]
-                    st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                    st.success(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                 else:
                      st.info(f"Aucune donnée DVF pour {ville1}")
         else:
