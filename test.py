@@ -764,7 +764,7 @@ def page_accueil():
     st.title("Bienvenue sur le Comparateur de communes françaises !")
     st.write("Cette application vous permet de découvrir facilement des informations sur les communes françaises. " \
     "Vous pouvez aussi comparer deux villes côte à côte, pour mieux visualiser leurs différence. ")
-    st.markdown("Ce comparateur a été imaginé et développé par Tristan Coadou et Pierre Gavrel:")
+    st.markdown("Ce comparateur a été imaginé et développé par Tristan Coadou et Pierre Gavrel.")
     
     components.html("""
     <div id="linkedin-badges" style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;"></div>
