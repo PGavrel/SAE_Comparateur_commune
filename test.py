@@ -726,9 +726,9 @@ def afficher_resultats_aligne(ville1, ville2=None):
                 with col1:
                     if not ligne1.empty:
                         st.markdown(f"""
-                            <b style='font-size:22px'>{ville1}</b>
-                            Prix moyen : <b>{prix} €/m²</b>
-                            Maison : <b>{NbMaisons} €/m²</b>
+                            <b style='font-size:22px'>{ville1}</b><b>
+                            Prix moyen : <b>{prix} €/m²</b><b>
+                            Maison : <b>{NbMaisons} €/m²</b><b>
                             Appartements : <b>{NbApparts}</b>
                             """, unsafe_allow_html=True)
                     else:
@@ -740,9 +740,9 @@ def afficher_resultats_aligne(ville1, ville2=None):
                         NbApparts = ligne2["NbApparts"].values[0]
                         NbMaisons = ligne2["NbMaisons"].values[0]
                         st.markdown(f"""
-                        <b style='font-size:22px'>{ville2}</b>
-                        Prix moyen : <b>{prix} €/m²</b>
-                        Maison : <b>{NbMaisons} €/m²</b>
+                        <b style='font-size:22px'>{ville2}</b><b>
+                        Prix moyen : <b>{prix} €/m²</b><b>
+                        Maison : <b>{NbMaisons} €/m²</b><b>
                         Appartements : <b>{NbApparts}</b>
                         """, unsafe_allow_html=True)
                     else:
@@ -750,9 +750,9 @@ def afficher_resultats_aligne(ville1, ville2=None):
             else:
                 if not ligne1.empty:
                     st.markdown(f"""
-                            <b style='font-size:22px'>{ville1}</b>
-                            Prix moyen : <b>{prix} €/m²</b>
-                            Maison : <b>{NbMaisons} €/m²</b>
+                            <b style='font-size:22px'>{ville1}</b><b>
+                            Prix moyen : <b>{prix} €/m²</b><b>
+                            Maison : <b>{NbMaisons} €/m²</b><b>
                             Appartements : <b>{NbApparts}</b>
                             """, unsafe_allow_html=True)
                 else:
