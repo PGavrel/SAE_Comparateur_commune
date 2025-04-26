@@ -726,7 +726,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
                         prix = ligne1["Prixm2Moyen"].values[0]
                         NbApparts = ligne1["NbApparts"].values[0]
                         NbMaisons = ligne1["NbMaisons"].values[0]
-                        st.success(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                        st.write(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                     else:
                         st.info(f"Aucune donnée DVF pour {ville1}")
 
@@ -735,7 +735,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
                         prix = ligne2["Prixm2Moyen"].values[0]
                         NbApparts = ligne2["NbApparts"].values[0]
                         NbMaisons = ligne2["NbMaisons"].values[0]
-                        st.success(f"**{ville2}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                        st.write(f"**{ville2}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
             else:
@@ -743,7 +743,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
                     prix = ligne1["Prixm2Moyen"].values[0]
                     NbApparts = ligne1["NbApparts"].values[0]
                     NbMaisons = ligne1["NbMaisons"].values[0]
-                    st.success(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                    st.write(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                 else:
                      st.info(f"Aucune donnée DVF pour {ville1}")
         else:
