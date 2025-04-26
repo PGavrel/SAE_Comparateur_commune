@@ -718,15 +718,19 @@ def afficher_resultats_aligne(ville1, ville2=None):
         if not df_dvf.empty:
             ligne1 = df_dvf[df_dvf["INSEE_COM"] == code1]
             ligne2 = df_dvf[df_dvf["INSEE_COM"] == code2] if ville2 else pd.DataFrame()
-
+            prix = ligne1["Prixm2Moyen"].values[0]
+            NbApparts = ligne1["NbApparts"].values[0]
+            NbMaisons = ligne1["NbMaisons"].values[0]
             if ville2:
                 col1, col2 = st.columns(2)
                 with col1:
                     if not ligne1.empty:
-                        prix = ligne1["Prixm2Moyen"].values[0]
-                        NbApparts = ligne1["NbApparts"].values[0]
-                        NbMaisons = ligne1["NbMaisons"].values[0]
-                        st.write(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                        st.markdown(f"""
+                            <b style='font-size:22px'>{ville1}</b><br>
+                            Prix moyen : <b>{prix} €/m²</b><br>
+                            - {NbApparts} ventes d'appartements<br>
+                            - {NbMaisons} ventes de maisons
+                            """, unsafe_allow_html=True)
                     else:
                         st.info(f"Aucune donnée DVF pour {ville1}")
 
@@ -735,15 +739,22 @@ def afficher_resultats_aligne(ville1, ville2=None):
                         prix = ligne2["Prixm2Moyen"].values[0]
                         NbApparts = ligne2["NbApparts"].values[0]
                         NbMaisons = ligne2["NbMaisons"].values[0]
-                        st.write(f"**{ville2}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                        st.markdown(f"""
+                        <b style='font-size:22px'>{ville2}</b><br>
+                        Prix moyen : <b>{prix} €/m²</b><br>
+                        - {NbApparts} ventes d'appartements<br>
+                        - {NbMaisons} ventes de maisons
+                        """, unsafe_allow_html=True)
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
             else:
                 if not ligne1.empty:
-                    prix = ligne1["Prixm2Moyen"].values[0]
-                    NbApparts = ligne1["NbApparts"].values[0]
-                    NbMaisons = ligne1["NbMaisons"].values[0]
-                    st.write(f"**{ville1}** : {prix} €/m² ({NbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                    st.markdown(f"""
+                        <b style='font-size:22px'>{ville1}</b><br>
+                        Prix moyen : <b>{prix} €/m²</b><br>
+                        - {NbApparts} ventes d'appartements<br>
+                        - {NbMaisons} ventes de maisons
+                        """, unsafe_allow_html=True)
                 else:
                      st.info(f"Aucune donnée DVF pour {ville1}")
         else:
