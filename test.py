@@ -710,28 +710,31 @@ def afficher_resultats_aligne(ville1, ville2=None):
                 col1, col2 = st.columns(2)
                 with col1:
                     if not ligne1.empty:
-                        prix = ligne1["prix_m2_moyen"].values[0]
-                        nb = ligne1["nb_ventes"].values[0]
-                        st.success(f"**{ville1}** : {prix} €/m² ({nb} ventes)")
+                        prix = ligne1["Prixm2Moyen"].values[0]
+                        nbApparts = ligne1["NbApparts"].values[0]
+                        NbMaisons = ligne1["NbMaisons"].values[0]
+                        st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                     else:
                         st.info(f"Aucune donnée DVF pour {ville1}")
 
                 with col2:
                     if not ligne2.empty:
-                        prix = ligne2["prix_m2_moyen"].values[0]
-                        nb = ligne2["nb_ventes"].values[0]
-                        st.success(f"**{ville2}** : {prix} €/m² ({nb} ventes)")
+                        prix = ligne2["Prixm2Moyen"].values[0]
+                        nbApparts = ligne2["NbApparts"].values[0]
+                        NbMaisons = ligne2["NbMaisons"].values[0]
+                        st.success(f"**{ville2}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
             else:
-                if not ligne1.empty:
-                    prix = ligne1["prix_m2_moyen"].values[0]
-                    nb = ligne1["nb_ventes"].values[0]
-                    st.success(f"**{ville1}** : {prix} €/m² ({nb} ventes)")
-                else:
-                    st.info(f"Aucune donnée DVF pour {ville1}")
+                 if not ligne1.empty:
+                        prix = ligne1["Prixm2Moyen"].values[0]
+                        nbApparts = ligne1["NbApparts"].values[0]
+                        NbMaisons = ligne1["NbMaisons"].values[0]
+                        st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
+                    else:
+                        st.info(f"Aucune donnée DVF pour {ville1}")
         else:
-            st.warning("Fichier `dvf2023.csv` introuvable ou vide.")
+            st.warning("Données non disponibles")
 
 
 # Fonction pour envoyer un email
