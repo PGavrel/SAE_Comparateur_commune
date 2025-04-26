@@ -702,7 +702,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
         st.markdown("### Prix moyen au m² (transactions DVF – Etalab)")
         df_dvf = charger_dvf_aggrege()
 
-        if not df_dvf_agg.empty:
+        if not df_dvf.empty:
             ligne1 = df_dvf[df_dvf["INSEE_COM"] == code1]
             ligne2 = df_dvf[df_dvf["INSEE_COM"] == code2] if ville2 else pd.DataFrame()
 
