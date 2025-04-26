@@ -731,7 +731,7 @@ def afficher_resultats_aligne(ville1, ville2=None):
                     nbApparts = ligne1["NbApparts"].values[0]
                     NbMaisons = ligne1["NbMaisons"].values[0]
                     st.success(f"**{ville1}** : {prix} €/m² ({nbApparts} ventes d'appartements et {NbMaisons} ventes de maison)")
-                 else:
+                else:
                      st.info(f"Aucune donnée DVF pour {ville1}")
         else:
             st.warning("Données non disponibles")
