@@ -19,7 +19,7 @@ import io
 import zipfile
 import matplotlib.pyplot as plt
 import unicodedata
-import json
+import json 
 
 # Charger les variables d'environnement depuis un fichier .env
 load_dotenv()
@@ -177,6 +177,35 @@ def regrouper_emploi(df):
         return df_grouped
     return df
 
+def afficher_repartition_statuts(df):
+    try:
+        # On garde uniquement la colonne EMPSTA_ENQ
+        df_empsta = df[["EMPSTA_ENQ", "OBS_VALUE_NIVEAU"]].dropna()
+
+        # Remplacer les codes par des libellés lisibles
+        libelles = {
+            "1": "Actif occupé",
+            "1T2": "Actif total",
+            "2": "Chômeur"
+        }
+        df_empsta["Statut"] = df_empsta["EMPSTA_ENQ"].map(libelles)
+
+        # Grouper par statut et additionner
+        repartition = df_empsta.groupby("Statut")["OBS_VALUE_NIVEAU"].sum().reset_index()
+
+        # Afficher sous forme de tableau
+        st.markdown("### Répartition des statuts d'emploi")
+        st.dataframe(repartition)
+
+        # Option : Afficher aussi un camembert pour être plus joli
+        fig, ax = plt.subplots()
+        ax.pie(repartition["OBS_VALUE_NIVEAU"], labels=repartition["Statut"], autopct="%1.1f%%", startangle=90)
+        ax.axis('equal')  # Rond
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"Erreur affichage statuts d'emploi : {e}")
+
 # Fonction GeoAPI pour récupérer le nom officiel depuis le code INSEE
 @st.cache_data(show_spinner="Chargement des données...")
 def get_nom_officiel_depuis_insee(code_insee):
@@ -232,7 +261,14 @@ def get_blason_et_site_via_api(nom_ville):
     blason = blason_match.group(1).strip() if blason_match else None
 
     site_match = re.search(r"\|\s*siteweb\s*=\s*(.+)", content)
-    siteweb = site_match.group(1).strip() if site_match else None
+    if site_match:
+        siteweb = site_match.group(1).strip()
+        # Correction : extraire seulement l'URL si format type [url texte]
+        if siteweb.startswith("[") and siteweb.endswith("]"):
+            parts = siteweb[1:-1].split(' ')
+            siteweb = parts[0] if parts else None
+    else:
+        siteweb = None
 
     if blason and not blason.startswith("http"):
         blason_filename = blason.replace(" ", "_")
@@ -371,13 +407,13 @@ def get_icone_meteo(row):
     elif pluie > 0 or risque_pluie > 30:
         return "🌂", "Possibles averses"
     elif soleil > 300:
-        return "☀️", "Ensoleillé"
+        return "☀️", "Journée ensoleillé"
     elif soleil > 120:
         return "🌤️", "Partiellement ensoleillé"
     elif soleil > 30:
         return "🌥️", "Peu de soleil"
     else:
-        return "☁️", "Couvert"
+        return "☁️", "Ciel couvert"
     
 #Affichage prévision météo 
 def afficher_previsions_meteo(ville, df, nb_jours):
@@ -460,6 +496,77 @@ def afficher_previsions_meteo(ville, df, nb_jours):
         </style>
         """, unsafe_allow_html=True)
 
+def afficher_combat_villes(ville1, blason1, ville2=None, blason2=None):
+    html = f"""
+    <div class="streetfighter-banner">
+        <div class="ville">
+            <img src="{blason1}" alt="{ville1}" class="blason shake">
+            <div class="nom">{ville1}</div>
+        </div>
+    """
+
+    if ville2 and blason2:
+        html += f"""
+        <div class="vs shake">VS</div>
+        <div class="ville">
+            <img src="{blason2}" alt="{ville2}" class="blason shake">
+            <div class="nom">{ville2}</div>
+        </div>
+        """
+
+    html += """
+    </div>
+
+    <style>
+    .streetfighter-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(90deg, #111, #333, #111);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px 0;
+        z-index: 9999;
+        animation: slideDown 1s ease;
+        border-radius : 18px
+    }
+    @keyframes slideDown {
+        from { top: -100px; }
+        to { top: 0; }
+    }
+    .ville {
+        display: flex;
+        align-items: center;
+        margin: 0 40px;
+        gap: 15px;
+    }
+    .blason {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 3px solid #f00;
+    }
+    .nom {
+        font-weight: bold;
+        font-size: 28px;
+        text-shadow: 1px 1px 2px black;
+    }
+    .vs {
+        font-size: 40px;
+        font-weight: bold;
+        margin: 0 20px;
+        color: #f00;
+        text-shadow: 2px 2px 5px black;
+    }
+    </style>
+    """
+
+    components.html(html, height=160)
+
+
 @st.cache_data
 def charger_dvf_aggrege(path="dvf2023.csv"):
     try:
@@ -475,11 +582,50 @@ def charger_dvf_aggrege(path="dvf2023.csv"):
         if "NbMaisons" in df.columns:
             df["NbMaisons"] = df["NbMaisons"].fillna(0).astype(int)
 
+        if "PrixMoyen" in df.columns:
+            df["PrixMoyen"] = df["PrixMoyen"].round(1)
+
+        if "propappart" in df.columns:
+            df["propappart"] = df["propappart"].fillna(0).astype(int)
+
+        if "propmaison" in df.columns:
+            df["propmaison"] = df["propmaison"].fillna(0).astype(int)
+
         return df
     
     except Exception as e:
         st.error(f"Erreur lecture fichier DVF agrégé : {e}")
         return pd.DataFrame()
+
+def afficher_offres_emploi(ville):
+    mot_cle = st.sidebar.text_input("🔍 Mot-clé métier", "", key=f"keyword_{ville}")
+    nb_offres = st.sidebar.selectbox("🔢 Nombre d'offres", ["5", "10", "50", "100", "Toutes"], key=f"nb_{ville}")
+
+    st.markdown("<hr style='border: 1px solid #ddd; margin-top: 10px;'>", unsafe_allow_html=True)
+
+    # Préparer slug et département
+    slug_ville = enlever_accents(ville.split(' (')[0])
+    infos = get_infos_commune(code_insee_villes[ville])
+    depart = infos.get('departement', {}).get('code')
+
+    # Appel API
+    token = authenticate(scope)
+    resultats = liste_metier(depart, f"{mot_cle} {slug_ville}", token).get("resultats", [])
+
+    if resultats:
+        if nb_offres != "Toutes":
+            resultats = resultats[:int(nb_offres)]
+        for offre in resultats:
+            st.markdown(f"### {offre.get('intitule', '—')}")
+            st.write(f"📍 Lieu : {offre.get('lieuTravail', {}).get('libelle', 'Inconnu')}")
+            st.write(f"📝 {offre.get('description', '')[:300]}…")
+            url = (offre.get('origineOffre', {}).get('urlOrigine')
+                   or offre.get('lienOrigine')
+                   or offre.get('urlOrigine', "#"))
+            st.markdown(f"[🔗 Voir l'offre]({url})", unsafe_allow_html=True)
+            st.markdown("<hr style='border: 1px solid #ddd;'>", unsafe_allow_html=True)
+    else:
+        st.warning(f"Aucune offre trouvée pour {ville}.")
 
 # Afficher infos villes et côtes à côte si 2 villes 
 def afficher_resultats_aligne(ville1, ville2=None):
@@ -488,22 +634,28 @@ def afficher_resultats_aligne(ville1, ville2=None):
 
     data1 = get_blason_et_site_via_api(get_nom_officiel_depuis_insee(code1)) if code1 else None
     data2 = get_blason_et_site_via_api(get_nom_officiel_depuis_insee(code2)) if code2 else None
+    blason1 = data1.get("blason_url") if data1 else None
+    blason2 = data2.get("blason_url") if data2 else None
 
     infos1 = get_infos_commune(code1) if code1 else {}
     infos2 = get_infos_commune(code2) if code2 else {}
-
+    
     df_test = charger_code_insee_villes()
     
-
     if ville2:
-        st.header(f"{ville1} VS {ville2}")
+        afficher_combat_villes(ville1, blason1, ville2, blason2)
     else:
-        st.header(f"{ville1}")
+        afficher_combat_villes(ville1, blason1)
+
+#    if ville2:
+#        st.header(f"{ville1} VS {ville2}")
+#    else:
+#        st.header(f"{ville1}")
 
     if st.sidebar.checkbox("Informations générales", True):
         for label, key in [
             ("Image représentative", "image_url"),
-            ("Blason", "blason_url"),
+            #("Blason", "blason_url"),
             ("Site officiel", "site_web")
         ]:
             st.markdown(f"### {label}")
@@ -584,6 +736,8 @@ def afficher_resultats_aligne(ville1, ville2=None):
     
         df_emploi1 = get_emploi_melodi_insee(code_dep1) if code_dep1 else pd.DataFrame()
         df_emploi2 = get_emploi_melodi_insee(code_dep2) if code_dep2 else pd.DataFrame()
+        df_statuts1 = df_emploi1.copy()
+        df_statuts2 = df_emploi2.copy()
         df_emploi1 = regrouper_emploi(df_emploi1)
         df_emploi2 = regrouper_emploi(df_emploi2)
         df_emploi1 = ajouter_libelles_pcs(df_emploi1)
@@ -615,11 +769,23 @@ def afficher_resultats_aligne(ville1, ville2=None):
     if ville2:
         st.write(f"### {ville1}")
         st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
+
         st.write(f"### {ville2}")
         st.dataframe(df_emploi2[ [col for col in colonnes if col in df_emploi2.columns] ])
+
     else:
         st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
 
+    if not df_statuts1.empty:
+        afficher_repartition_statuts(df_statuts1)
+    else:
+        st.info(f"Aucune répartition disponible pour {ville1}")
+
+    if ville2:
+        if not df_statuts2.empty:
+            afficher_repartition_statuts(df_statuts2)
+        else:
+            st.info(f"Aucune répartition disponible pour {ville2}")
 
     # Récupération coordonnées GPS depuis infos INSEE (attention à l'ordre GeoJSON)
     coords1 = infos1.get("centre", {}).get("coordinates")
@@ -655,60 +821,62 @@ def afficher_resultats_aligne(ville1, ville2=None):
             else:
                 st.warning(f"Carte indisponible pour {ville1}")
 
-
-
-    # Températures Open-Meteo
-    if st.sidebar.checkbox("Météo", True):
-        st.markdown("### Température moyenne des 2 dernières années (source : Open-Meteo)")
+    with st.container():
+        # Températures Open-Meteo
+        if st.sidebar.checkbox("Météo", True):
+            st.markdown("### Température moyenne des 2 dernières années (source : Open-Meteo)")
+            
+            saisons1, moyenne1 = get_temperature_par_saison_ville(lat1, lon1) if lat1 and lon1 else ({}, None)
+            saisons2, moyenne2 = get_temperature_par_saison_ville(lat2, lon2) if ville2 and lat2 and lon2 else ({}, None)
         
-        saisons1, moyenne1 = get_temperature_par_saison_ville(lat1, lon1) if lat1 and lon1 else ({}, None)
-        saisons2, moyenne2 = get_temperature_par_saison_ville(lat2, lon2) if ville2 and lat2 and lon2 else ({}, None)
-    
-        if ville2:
-            col1, col2 = st.columns(2)
+            if ville2:
+                col1, col2 = st.columns(2)
 
-            with col1:
+                with col1:
+                    st.write(f"### {ville1}")
+                    if moyenne1:
+                        st.markdown(f" Température annuelle moyenne : {moyenne1} °C")
+                    for saison in ["Hiver", "Printemps", "Été", "Automne"]:
+                        st.markdown(f"- {saison} : {saisons1.get(saison, 'N/A')} °C")
+                    
+                with col2:
+                    st.write(f"### {ville2}")
+                    if moyenne2:
+                        st.markdown(f" Température annuelle moyenne : {moyenne2} °C")
+                    for saison in ["Hiver", "Printemps", "Été", "Automne"]:
+                        st.markdown(f"- {saison} : {saisons2.get(saison, 'N/A')} °C")
+                    
+
+            else:
+                st.write(f"### {ville1}")
                 if moyenne1:
                     st.markdown(f" Température annuelle moyenne : {moyenne1} °C")
                 for saison in ["Hiver", "Printemps", "Été", "Automne"]:
                     st.markdown(f"- {saison} : {saisons1.get(saison, 'N/A')} °C")
                 
-            with col2:
-                if moyenne2:
-                    st.markdown(f" Température annuelle moyenne : {moyenne2} °C")
-                for saison in ["Hiver", "Printemps", "Été", "Automne"]:
-                    st.markdown(f"- {saison} : {saisons2.get(saison, 'N/A')} °C")
-                
 
-        else:
-            if moyenne1:
-                st.markdown(f" Température annuelle moyenne : {moyenne1} °C")
-            for saison in ["Hiver", "Printemps", "Été", "Automne"]:
-                st.markdown(f"- {saison} : {saisons1.get(saison, 'N/A')} °C")
+
+            # prévisions Open-Meteo
+            st.markdown(f"## Prévisions météo (source : Open-Meteo)")
+
+            # Récupération données depuis API Open-Meteo
+            prevision1 = get_prevision_meteo(lat1, lon1) if lat1 and lon1 else pd.DataFrame()
+            prevision2 = get_prevision_meteo(lat2, lon2) if ville2 and lat2 and lon2 else pd.DataFrame()
+            # Nombre de jours à afficher (ex: 5 prochains jours)
+            nb_jours = 5
+
+            # Affichage en colonnes ou seul
+            if ville2:
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    afficher_previsions_meteo(ville1, prevision1, nb_jours)
+
+                with col2:
+                    afficher_previsions_meteo(ville2, prevision2, nb_jours)
             
-
-
-        # prévisions Open-Meteo
-        st.markdown(f"## Prévisions météo (source : Open-Meteo)")
-
-        # Récupération données depuis API Open-Meteo
-        prevision1 = get_prevision_meteo(lat1, lon1) if lat1 and lon1 else pd.DataFrame()
-        prevision2 = get_prevision_meteo(lat2, lon2) if ville2 and lat2 and lon2 else pd.DataFrame()
-        # Nombre de jours à afficher (ex: 5 prochains jours)
-        nb_jours = 5
-
-        # Affichage en colonnes ou seul
-        if ville2:
-            col1, col2 = st.columns(2)
-
-            with col1:
+            else:
                 afficher_previsions_meteo(ville1, prevision1, nb_jours)
-
-            with col2:
-                afficher_previsions_meteo(ville2, prevision2, nb_jours)
-        
-        else:
-            afficher_previsions_meteo(ville1, prevision1, nb_jours)
 
 
     if st.sidebar.checkbox("Logement", True):
@@ -718,17 +886,20 @@ def afficher_resultats_aligne(ville1, ville2=None):
         if not df_dvf.empty:
             ligne1 = df_dvf[df_dvf["INSEE_COM"] == code1]
             ligne2 = df_dvf[df_dvf["INSEE_COM"] == code2] if ville2 else pd.DataFrame()
-            prix = ligne1["Prixm2Moyen"].values[0]
+            Prix = ligne1["PrixMoyen"].values[0]
+            Prixm2 = ligne1["Prixm2Moyen"].values[0]
             NbApparts = ligne1["NbApparts"].values[0]
             NbMaisons = ligne1["NbMaisons"].values[0]
+            Propappart = ligne1["propappart"].values[0]
+            Propmaison = ligne1["propmaison"].values[0]
             if ville2:
                 col1, col2 = st.columns(2)
                 with col1:
                     if not ligne1.empty:
                         st.markdown(f"""
-                            <b style='font-size:22px'>{ville1}</b><b>
-                            Prix moyen : <b>{prix} €/m²</b><b>
-                            Maison : <b>{NbMaisons} €/m²</b><b>
+                            <b style='font-size:22px'>{ville1}</b><br>
+                            Prix moyen : <b>{Prixm2} €/m²,   {Prix}€</b><br>
+                            Maison : <b>{NbMaisons}</b><br>
                             Appartements : <b>{NbApparts}</b>
                             """, unsafe_allow_html=True)
                     else:
@@ -736,13 +907,13 @@ def afficher_resultats_aligne(ville1, ville2=None):
 
                 with col2:
                     if not ligne2.empty:
-                        prix = ligne2["Prixm2Moyen"].values[0]
+                        prixm2 = ligne2["Prixm2Moyen"].values[0]
                         NbApparts = ligne2["NbApparts"].values[0]
                         NbMaisons = ligne2["NbMaisons"].values[0]
                         st.markdown(f"""
-                        <b style='font-size:22px'>{ville2}</b><b>
-                        Prix moyen : <b>{prix} €/m²</b><b>
-                        Maison : <b>{NbMaisons} €/m²</b><b>
+                        <b style='font-size:22px'>{ville2}</b><br>
+                        Prix moyen : <b>{Prixm2} €/m²,   {Prix}€</b><br>
+                        Maison : <b>{NbMaisons} </b><br>
                         Appartements : <b>{NbApparts}</b>
                         """, unsafe_allow_html=True)
                     else:
@@ -750,9 +921,9 @@ def afficher_resultats_aligne(ville1, ville2=None):
             else:
                 if not ligne1.empty:
                     st.markdown(f"""
-                            <b style='font-size:22px'>{ville1}</b><b>
-                            Prix moyen : <b>{prix} €/m²</b><b>
-                            Maison : <b>{NbMaisons} €/m²</b><b>
+                            <b style='font-size:22px'>{ville1}</b><br>
+                            Prix moyen : <b>{Prixm2} €/m²,   {Prix}€</b><br>
+                            Maison : <b>{NbMaisons}</b><br>
                             Appartements : <b>{NbApparts}</b>
                             """, unsafe_allow_html=True)
                 else:
@@ -760,6 +931,14 @@ def afficher_resultats_aligne(ville1, ville2=None):
         else:
             st.warning("Données non disponibles")
 
+    if ville2:
+        st.write("")
+    else:
+        if st.sidebar.checkbox("Emploie", True):
+            st.markdown("## Offres d'emploie") 
+            st.sidebar.markdown("---")
+            st.sidebar.subheader(f"Rechercher des offres d'emploi ({ville1})")
+            afficher_offres_emploi(ville1)
 
 # Fonction pour envoyer un email
 def envoyer_email(idee):
@@ -842,54 +1021,41 @@ def page_accueil():
 def page_city_fighter():
     st.title("City Fighter")
     villes_disponibles = list(code_insee_villes.keys())
+    ville_default1 = "Paris"
+    ville_default2 = "Marseille"
+
+    # Chercher l'index de Paris et Marseille dans la liste des villes
+    index_ville1 = villes_disponibles.index(ville_default1) if ville_default1 in villes_disponibles else 0
+    index_ville2 = [ville for ville in villes_disponibles if ville != ville_default1].index(ville_default2) if ville_default2 in villes_disponibles else 0
 
     col1, col2 = st.columns(2)
     with col1:
-        ville1 = st.selectbox("Choisissez la première commune", villes_disponibles, index=0, key="ville1")
-    with col2:
-        ville2 = st.selectbox("Choisissez la seconde commune", [ville for ville in villes_disponibles if ville != st.session_state.ville1], index=0, key="ville2")
+        ville1 = st.selectbox(
+            "Choisissez la première commune",
+            villes_disponibles,
+            index=index_ville1,
+            key="ville1"
+        )
 
+    with col2:
+        # Attention ici : on enlève la ville1 déjà sélectionnée
+        ville2 = st.selectbox(
+            "Choisissez la seconde commune",
+            [ville for ville in villes_disponibles if ville != st.session_state.ville1],
+            index=index_ville2,
+            key="ville2"
+        )
     afficher_resultats_aligne(ville1, ville2)
 
 # Page Zoom Ville
 def page_zoom_ville():
     st.title("🔎 Zoom sur une Ville")
-
+    villes_disponibles = list(code_insee_villes.keys())
+    ville_default = "Paris"
+    index_ville = villes_disponibles.index(ville_default) if ville_default in villes_disponibles else 0
     # Sélection de la commune
-    ville = st.selectbox("Choisissez une commune", list(code_insee_villes.keys()))
-    afficher_resultats_aligne(ville)  # votre bloc existant d’infos géo
-
-    # Sidebar : filtres et activation
-    if st.sidebar.checkbox("Afficher les offres d'emploi", True):
-        mot_cle   = st.sidebar.text_input("🔍 Mot-clé métier", "", key="zoom_keyword")
-        nb_offres = st.sidebar.selectbox("🔢 Nombre d'offres", ["5", "10", "50", "100", "Toutes"], key="zoom_nb")
-
-        st.markdown("<hr style='border: 1px solid #ddd; margin-top: 10px;'>", unsafe_allow_html=True)
-
-        # Préparation du slug et du code département
-        slug_ville = enlever_accents(ville.split(' (')[0])
-        infos = get_infos_commune(code_insee_villes[ville])
-        depart = infos.get('departement', {}).get('code')
-
-        # Appel API
-        token = authenticate(scope)
-        resultats = liste_metier(depart, f"{mot_cle} {slug_ville}", token).get("resultats", [])
-
-        # Affichage vertical des offres
-        if resultats:
-            if nb_offres != "Toutes":
-                resultats = resultats[:int(nb_offres)]
-            for offre in resultats:
-                st.markdown(f"### {offre.get('intitule', '—')}")
-                st.write(f"📍 Lieu : {offre.get('lieuTravail', {}).get('libelle', 'Inconnu')}")
-                st.write(f"📝 {offre.get('description', '')[:300]}…")
-                url = (offre.get('origineOffre', {}).get('urlOrigine')
-                       or offre.get('lienOrigine')
-                       or offre.get('urlOrigine', "#"))
-                st.markdown(f"[🔗 Voir l'offre]({url})", unsafe_allow_html=True)
-                st.markdown("<hr style='border: 1px solid #ddd;'>", unsafe_allow_html=True)
-        else:
-            st.warning("Aucune offre trouvée pour cette ville.")
+    ville = st.selectbox("Choisissez une commune", villes_disponibles,index=index_ville,key="ville1")
+    afficher_resultats_aligne(ville) 
 
 
 # Page Boîte à Idées
