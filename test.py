@@ -20,6 +20,7 @@ import zipfile
 import matplotlib.pyplot as plt
 import unicodedata
 import json 
+import plotly.express as px
 
 # Charger les variables d'environnement depuis un fichier .env
 load_dotenv()
@@ -93,16 +94,6 @@ def fetch_offres(start=0, page_size=20, departement=None, mots_cles=None):
     return data.get('resultats', []), resp.headers.get('Content-Range', '')
 
 
-# Communes
-@st.cache_data(show_spinner="Chargement des villes...")
-def charger_code_insee_villes(path="communes-france-2025.csv"):
-    df = pd.read_csv(path, sep=";", dtype=str)
-    # Si 'nom_standard' existe, on la renomme
-    if "nom_standard" in df.columns:
-        df = df.rename(columns={"nom_standard": "nom_ville"})
-    return dict(zip(df["nom_ville"], df["code_insee"]))
-code_insee_villes = charger_code_insee_villes()
-
 # Fonction GeoAPI pour récupérer des infos générales sur la ville
 @st.cache_data(show_spinner="Chargement des données...")
 def get_infos_commune(code_insee):
@@ -115,6 +106,19 @@ def get_infos_commune(code_insee):
         return response.json()
     else:
         return {}
+
+# Communes
+@st.cache_data(show_spinner="Chargement des villes...")
+def charger_code_insee_villes(path="communes-france-2025.csv"):
+    df = pd.read_csv(path, sep=";", dtype=str)
+    # Si 'nom_standard' existe, on la renomme
+    if "nom_standard" in df.columns:
+        df = df.rename(columns={"nom_standard": "nom_ville"})
+    return dict(zip(df["nom_ville"], df["code_insee"]))
+
+code_insee_villes = charger_code_insee_villes()
+
+
 
 
 # Fonction Melodi (INSEE) information emploi
@@ -177,10 +181,91 @@ def regrouper_emploi(df):
         return df_grouped
     return df
 
+def afficher_graphiques_pcs(df, ville):
+    try:
+        if df.empty:
+            st.info(f"Aucune donnée emploi disponible pour {ville}")
+            return
+
+        # Regrouper par année et PCS
+        df_grouped = (
+            df.groupby(["TIME_PERIOD", "PCS_LIBELLE"], as_index=False)
+              .agg({"OBS_VALUE_NIVEAU": "sum"})
+        )
+
+        # Calculer le total par année pour faire des %
+        total_annee = df_grouped.groupby("TIME_PERIOD")["OBS_VALUE_NIVEAU"].transform("sum")
+        df_grouped["Pourcentage"] = (df_grouped["OBS_VALUE_NIVEAU"] / total_annee * 100).round(1)
+
+        st.subheader(f"Répartition PCS pour {ville}")
+
+        # 1er graphique : Camembert (sur dernière année dispo)
+        derniere_annee = df_grouped["TIME_PERIOD"].max()
+        df_dernier = df_grouped[df_grouped["TIME_PERIOD"] == derniere_annee]
+
+        fig_pie = px.pie(
+            df_dernier,
+            names="PCS_LIBELLE",
+            values="Pourcentage",
+            title=f"Répartition par catégorie en {derniere_annee}",
+            hole=0.4
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+        # 2e graphique : Evolution dans le temps (Stacked Area Chart)
+        fig_area = px.area(
+            df_grouped,
+            x="TIME_PERIOD",
+            y="Pourcentage",
+            color="PCS_LIBELLE",
+            title="Évolution des catégories socio-professionnelles dans le temps"
+        )
+        fig_area.update_layout(yaxis_title="Pourcentage (%)", xaxis_title="Année")
+        st.plotly_chart(fig_area, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Erreur affichage PCS : {e}")
+
+def afficher_evolution_pcs(df):
+    try:
+        if df.empty:
+            st.warning("Pas de données PCS disponibles.")
+            return
+
+        # Vérification que les colonnes existent
+        if not all(col in df.columns for col in ["TIME_PERIOD", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]):
+            st.error("Colonnes manquantes pour afficher l'évolution des PCS.")
+            return
+
+        # Pivot pour avoir les PCS en colonnes
+        pivot_df = df.pivot_table(
+            index="TIME_PERIOD",
+            columns="PCS_LIBELLE",
+            values="OBS_VALUE_NIVEAU",
+            aggfunc="sum"
+        )
+
+        # Tracer
+        fig, ax = plt.subplots(figsize=(10, 6))
+        pivot_df.plot(ax=ax, marker='o')  # Courbes + points
+
+        ax.set_title("Évolution des catégories socio-professionnelles (PCS)")
+        ax.set_xlabel("Année")
+        ax.set_ylabel("Population (en nombre)")
+        ax.legend(title="Catégorie PCS", bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.grid(True)
+        plt.tight_layout()
+
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"Erreur lors de l'affichage de l'évolution des PCS : {e}")
+
 def afficher_repartition_statuts(df):
     try:
         # On garde uniquement la colonne EMPSTA_ENQ
         df_empsta = df[["EMPSTA_ENQ", "OBS_VALUE_NIVEAU"]].dropna()
+
 
         # Remplacer les codes par des libellés lisibles
         libelles = {
@@ -189,7 +274,7 @@ def afficher_repartition_statuts(df):
             "2": "Chômeur"
         }
         df_empsta["Statut"] = df_empsta["EMPSTA_ENQ"].map(libelles)
-
+        df_empsta = df_empsta[df_empsta["EMPSTA_ENQ"] != "1T2"]
         # Grouper par statut et additionner
         repartition = df_empsta.groupby("Statut")["OBS_VALUE_NIVEAU"].sum().reset_index()
 
@@ -500,7 +585,7 @@ def afficher_combat_villes(ville1, blason1, ville2=None, blason2=None):
     html = f"""
     <div class="streetfighter-banner">
         <div class="ville">
-            <img src="{blason1}" alt="{ville1}" class="blason shake">
+            <img src="{blason1}" alt="{ville1}" class="blason">
             <div class="nom">{ville1}</div>
         </div>
     """
@@ -509,7 +594,7 @@ def afficher_combat_villes(ville1, blason1, ville2=None, blason2=None):
         html += f"""
         <div class="vs shake">VS</div>
         <div class="ville">
-            <img src="{blason2}" alt="{ville2}" class="blason shake">
+            <img src="{blason2}" alt="{ville2}" class="blason">
             <div class="nom">{ville2}</div>
         </div>
         """
@@ -561,6 +646,7 @@ def afficher_combat_villes(ville1, blason1, ville2=None, blason2=None):
         color: #f00;
         text-shadow: 2px 2px 5px black;
     }
+    
     </style>
     """
 
@@ -754,38 +840,49 @@ def afficher_resultats_aligne(ville1, ville2=None):
         df_emploi1 = df_emploi1.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
     else:
         st.warning(f"Aucune donnée emploi disponible pour {ville1}")
+
+    # Trier df_emploi2
     if ville2:
         if not df_emploi2.empty and "TIME_PERIOD" in df_emploi2.columns and "PCS" in df_emploi2.columns:
             df_emploi2 = df_emploi2.sort_values(by=["TIME_PERIOD", "PCS"], ascending=[False, True])
         else:
-            st.warning(f"Aucune donnée emploi disponible pour {ville1}")
+            st.warning(f"Aucune donnée emploi disponible pour {ville2}")
 
-    # Trier df_emploi2
-    if ville2:
-        colonnes_tri2 = [col for col in ["TIME_PERIOD", "PCS"] if col in df_emploi2.columns]
-        if colonnes_tri2:
-            df_emploi2 = df_emploi2.sort_values(by=colonnes_tri2, ascending=[False, True])
+    colonnes = ["TIME_PERIOD", "PCS", "PCS_LIBELLE", "OBS_VALUE_NIVEAU"]
 
     if ville2:
         st.write(f"### {ville1}")
-        st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
+        st.dataframe(df_emploi1[[col for col in colonnes if col in df_emploi1.columns]])
 
         st.write(f"### {ville2}")
-        st.dataframe(df_emploi2[ [col for col in colonnes if col in df_emploi2.columns] ])
-
+        st.dataframe(df_emploi2[[col for col in colonnes if col in df_emploi2.columns]])
     else:
-        st.dataframe(df_emploi1[ [col for col in colonnes if col in df_emploi1.columns] ])
+        st.dataframe(df_emploi1[[col for col in colonnes if col in df_emploi1.columns]])
+    
+
+    if ville2:
+        st.write(f"### {ville1}")
+        afficher_graphiques_pcs(df_emploi1, ville1)
+
+        st.write(f"### {ville2}")
+        afficher_graphiques_pcs(df_emploi2, ville2)
+    else:
+        st.dataframe(df_emploi1[[col for col in colonnes if col in df_emploi1.columns]])
+    
 
     if not df_statuts1.empty:
+        st.write(f"### Répartition des statuts pour {ville1}")
         afficher_repartition_statuts(df_statuts1)
     else:
         st.info(f"Aucune répartition disponible pour {ville1}")
 
     if ville2:
         if not df_statuts2.empty:
+            st.write(f"### Répartition des statuts pour {ville2}")
             afficher_repartition_statuts(df_statuts2)
         else:
             st.info(f"Aucune répartition disponible pour {ville2}")
+
 
     # Récupération coordonnées GPS depuis infos INSEE (attention à l'ordre GeoJSON)
     coords1 = infos1.get("centre", {}).get("coordinates")
@@ -886,35 +983,42 @@ def afficher_resultats_aligne(ville1, ville2=None):
         if not df_dvf.empty:
             ligne1 = df_dvf[df_dvf["INSEE_COM"] == code1]
             ligne2 = df_dvf[df_dvf["INSEE_COM"] == code2] if ville2 else pd.DataFrame()
-            Prix = ligne1["PrixMoyen"].values[0]
-            Prixm2 = ligne1["Prixm2Moyen"].values[0]
-            NbApparts = ligne1["NbApparts"].values[0]
-            NbMaisons = ligne1["NbMaisons"].values[0]
-            Propappart = ligne1["propappart"].values[0]
-            Propmaison = ligne1["propmaison"].values[0]
+            Prix1 = ligne1["PrixMoyen"].values[0]
+            Prixm21 = ligne1["Prixm2Moyen"].values[0]
+            NbApparts1 = ligne1["NbApparts"].values[0]
+            NbMaisons1 = ligne1["NbMaisons"].values[0]
+            Propappart1 = ligne1["propappart"].values[0]
+            Propmaison1 = ligne1["propmaison"].values[0]
+            if ville2:
+                Prix2 = ligne2["PrixMoyen"].values[0]
+                Prixm22 = ligne2["Prixm2Moyen"].values[0]
+                NbApparts2 = ligne2["NbApparts"].values[0]
+                NbMaisons2 = ligne2["NbMaisons"].values[0]
+                Propappart2 = ligne2["propappart"].values[0]
+                Propmaison2 = ligne2["propmaison"].values[0]
             if ville2:
                 col1, col2 = st.columns(2)
                 with col1:
                     if not ligne1.empty:
                         st.markdown(f"""
                             <b style='font-size:22px'>{ville1}</b><br>
-                            Prix moyen : <b>{Prixm2} €/m²,   {Prix}€</b><br>
-                            Maison : <b>{NbMaisons}</b><br>
-                            Appartements : <b>{NbApparts}</b>
+                            Prix moyen : <b>{Prixm21} €/m²,   {Prix1}€</b><br>
+                            Maison : <b>{NbMaisons1}</b><br>
+                            Appartements : <b>{NbApparts1}</b>
                             """, unsafe_allow_html=True)
                     else:
                         st.info(f"Aucune donnée DVF pour {ville1}")
 
                 with col2:
                     if not ligne2.empty:
-                        prixm2 = ligne2["Prixm2Moyen"].values[0]
-                        NbApparts = ligne2["NbApparts"].values[0]
-                        NbMaisons = ligne2["NbMaisons"].values[0]
+                        prixm22 = ligne2["Prixm2Moyen"].values[0]
+                        NbApparts2 = ligne2["NbApparts"].values[0]
+                        NbMaisons2 = ligne2["NbMaisons"].values[0]
                         st.markdown(f"""
                         <b style='font-size:22px'>{ville2}</b><br>
-                        Prix moyen : <b>{Prixm2} €/m²,   {Prix}€</b><br>
-                        Maison : <b>{NbMaisons} </b><br>
-                        Appartements : <b>{NbApparts}</b>
+                        Prix moyen : <b>{Prixm22} €/m²,   {Prix2}€</b><br>
+                        Maison : <b>{NbMaisons2} </b><br>
+                        Appartements : <b>{NbApparts2}</b>
                         """, unsafe_allow_html=True)
                     else:
                         st.info(f"Aucune donnée DVF pour {ville2}")
@@ -922,9 +1026,9 @@ def afficher_resultats_aligne(ville1, ville2=None):
                 if not ligne1.empty:
                     st.markdown(f"""
                             <b style='font-size:22px'>{ville1}</b><br>
-                            Prix moyen : <b>{Prixm2} €/m²,   {Prix}€</b><br>
-                            Maison : <b>{NbMaisons}</b><br>
-                            Appartements : <b>{NbApparts}</b>
+                            Prix moyen : <b>{Prixm21} €/m²,   {Prix1}€</b><br>
+                            Maison : <b>{NbMaisons1}</b><br>
+                            Appartements : <b>{NbApparts1}</b>
                             """, unsafe_allow_html=True)
                 else:
                      st.info(f"Aucune donnée DVF pour {ville1}")
